@@ -61,18 +61,18 @@ start_y = int(screen_size['height'] * 0.3)  # Start from 80% of the screen heigh
 end_y = int(screen_size['height'] * 0.1)  # End at 20% of the screen height
 
 while True:
-	# Perform the swipe action to scroll down
+    # Perform the swipe action to scroll down
 
-	driver.swipe(start_x, start_y, start_x, end_y, 200)  # Adjust the duration as needed
-	time.sleep(0.2)
+    driver.swipe(start_x, start_y, start_x, end_y, 200)  # Adjust the duration as needed
+    time.sleep(0.2)
 
-	more_buttons = driver.find_elements(by=AppiumBy.XPATH, value="//android.view.View[@class='android.view.View' and @text='More']")
-	print(len(more_buttons))
-	for b in reversed(more_buttons):
-		if b.rect["height"]>10:
-			b.click()
-			time.sleep(0.5)
-			break
+    more_buttons = driver.find_elements(by=AppiumBy.XPATH, value="//android.view.View[@class='android.view.View' and @text='More']")
+    print(len(more_buttons))
+    for b in reversed(more_buttons):
+        if b.rect["height"]>10:
+            b.click()
+            time.sleep(0.5)
+            break
 
 
 
