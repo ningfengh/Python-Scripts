@@ -13,6 +13,27 @@ from selenium.webdriver.common.actions.pointer_input import PointerInput
 from appium.webdriver.common.mobileby import MobileBy
 import time
 
+from appium.webdriver.common.touch_action import TouchAction
+
+from functools import wraps
+
+def retry(max_attempts=3, delay=1):
+    def decorator_retry(func):
+        @wraps(func)
+        def wrapper_retry(*args, **kwargs):
+            attempts = 0
+            while attempts < max_attempts:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    print(f"Attempt {attempts + 1} failed: {e}")
+                    attempts += 1
+                    time.sleep(delay)
+            # raise Exception(f"Function {func.__name__} failed after {max_attempts} attempts.")
+        
+        return wrapper_retry
+    
+    return decorator_retry
 
 
 caps = {}
@@ -28,8 +49,39 @@ caps["appium:connectHardwareKeyboard"] = True
 driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", caps)
 
 
+touch_action = TouchAction(driver)
+
+@retry(max_attempts=5, delay=2)
+def click(xpath_str, wait_time):
+    buttons = driver.find_elements(by=AppiumBy.XPATH, value=xpath_str)
+    if len(buttons) == 0:
+        raise Exception 
+    for b in buttons:
+        if b.rect["height"]>10:
+            b.click()
+            time.sleep(wait_time)
+            break
 
 
+
+
+def download_pic(element):
+    try:
+        element.click()  # there is case where the element is not exist anymore, it happens when having multiple portrait pictures 
+    except Exception:
+        return
+
+    time.sleep(2)
+    touch_action.press(x=720, y=2603).release().perform()
+    time.sleep(1)
+
+    click("//android.view.View[@class='android.view.View' and @text=' Download']", 2)
+
+    # click("//android.widget.Button[@class='android.widget.Button' and @text='ALLOW']", 2)
+
+    click("//android.widget.Button[@class='android.widget.Button' and @text='OK']", 0.5)
+
+    click("//android.widget.Button[@class='android.widget.Button' and @text='×']", 1)
 
 
 time.sleep(30) # wait for login
@@ -57,22 +109,50 @@ time.sleep(30) # wait for login
 
 screen_size = driver.get_window_size()
 start_x = int(1)
-start_y = int(screen_size['height'] * 0.3)  # Start from 80% of the screen height
+start_y = int(screen_size['height'] * 0.5)  # Start from 80% of the screen height
 end_y = int(screen_size['height'] * 0.1)  # End at 20% of the screen height
 
+
+id_set = set()
 while True:
     # Perform the swipe action to scroll down
+    elements = driver.find_elements(by=AppiumBy.XPATH, value="//android.view.View[@class='android.view.View' and @text='javascript:;']")
+    
+    visible_elements = []
+
+    for e in reversed(elements):
+        try:
+            if e.rect["height"]>10:  # sometimes this can crash the code
+                visible_elements.append(e)
+        except Exception:
+            continue
+       
+
+    print(f"found {len(elements)} images, {len(visible_elements)} visible images")
+    
+    for e in visible_elements:
+        if e.id in id_set:
+            continue
+        else:
+            id_set.add(e.id)
+            download_pic(e)
+        
 
     driver.swipe(start_x, start_y, start_x, end_y, 200)  # Adjust the duration as needed
-    time.sleep(0.2)
+
+
+    #time.sleep(0.2)
 
     more_buttons = driver.find_elements(by=AppiumBy.XPATH, value="//android.view.View[@class='android.view.View' and @text='More']")
-    print(len(more_buttons))
+    #print(len(more_buttons))
     for b in reversed(more_buttons):
-        if b.rect["height"]>10:
-            b.click()
-            time.sleep(0.5)
-            break
+        try:
+            if b.rect["height"]>10:
+                b.click()
+                time.sleep(0.5)
+                break
+        except Exception:
+            continue
 
 
 
@@ -88,3 +168,5 @@ while True:
 
 
 time.sleep(3600)
+
+
